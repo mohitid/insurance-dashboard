@@ -3,7 +3,6 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 import streamlit_authenticator as stauth
-# import copy
 
 # -------------------------------
 # Set Streamlit page config
@@ -17,27 +16,28 @@ gcp_secrets = st.secrets["gcp_service_account"]
 
 credentials = Credentials.from_service_account_info(
     {
-        "type": gcp_secrets.type,
-        "project_id": gcp_secrets.project_id,
-        "private_key_id": gcp_secrets.private_key_id,
-        "private_key": gcp_secrets.private_key,
-        "client_email": gcp_secrets.client_email,
-        "client_id": gcp_secrets.client_id,
-        "auth_uri": gcp_secrets.auth_uri,
-        "token_uri": gcp_secrets.token_uri,
-        "auth_provider_x509_cert_url": gcp_secrets.auth_provider_x509_cert_url,
-        "client_x509_cert_url": gcp_secrets.client_x509_cert_url,
+        "type": gcp_secrets["type"],
+        "project_id": gcp_secrets["project_id"],
+        "private_key_id": gcp_secrets["private_key_id"],
+        "private_key": gcp_secrets["private_key"],
+        "client_email": gcp_secrets["client_email"],
+        "client_id": gcp_secrets["client_id"],
+        "auth_uri": gcp_secrets["auth_uri"],
+        "token_uri": gcp_secrets["token_uri"],
+        "auth_provider_x509_cert_url": gcp_secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": gcp_secrets["client_x509_cert_url"],
     },
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes=[
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 )
 
 gc = gspread.authorize(credentials)
 
 # -------------------------------
-# Load authentication config
+# Load authentication config from secrets
 # -------------------------------
-# config = st.secrets["auth_config"]
-# config = copy.deepcopy(st.secrets["auth_config"])
 config = {
     "usernames": {
         "mohit": {
@@ -59,8 +59,9 @@ config = {
     },
 }
 
-
-
+# -------------------------------
+# Initialize authentication
+# -------------------------------
 authenticator = stauth.Authenticate(
     config,
     config["cookie"]["name"],
@@ -68,17 +69,22 @@ authenticator = stauth.Authenticate(
     config["cookie"]["expiry_days"]
 )
 
-name, authentication_status, username = authenticator.login(location="main")
+# Use login with proper location handling
+login_result = authenticator.login(location="main")
 
+if login_result is None:
+    st.warning("⚠️ Please enter your username and password")
+    st.stop()
+
+name, authentication_status, username = login_result
 
 # -------------------------------
 # Auth logic
 # -------------------------------
 if authentication_status is False:
     st.error("❌ Username or password is incorrect")
-elif authentication_status is None:
-    st.warning("⚠️ Please enter your username and password")
-elif authentication_status:
+    st.stop()
+elif authentication_status is True:
     authenticator.logout("Logout", "sidebar")
     st.success(f"Welcome, {name} 👋")
 
