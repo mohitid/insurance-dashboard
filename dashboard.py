@@ -67,10 +67,12 @@ authenticator = stauth.Authenticate(
 # -------------------------------
 # Login
 # -------------------------------
-name, authentication_status, username = authenticator.login(
-    location="main",
-    fields={"Form name": "Login"}
-)
+# name, authentication_status, username = authenticator.login(
+#     location="main",
+#     fields={"Form name": "Login"}
+# )
+name, authentication_status, username = authenticator.login("Login", "main")
+
 
 # -------------------------------
 # Auth logic
