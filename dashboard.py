@@ -87,9 +87,11 @@ if login_result:
 if authentication_status is False:
     st.error("❌ Username or password is incorrect")
     st.stop()
-elif authentication_status is True:
+elif authentication_status:
     authenticator.logout("Logout", "sidebar")
     st.success(f"Welcome, {name} 👋")
+
+    st.write("✅ Logged in. Trying to fetch data from Google Sheets...")
 
     # -------------------------------
     # Load Google Sheet Data
@@ -101,27 +103,32 @@ elif authentication_status is True:
     @st.cache_data(ttl=600)
     def load_data():
         sh = gc.open_by_key(sheet_id)
+        st.write("✅ Google Sheet opened")
         df_daily = pd.DataFrame(sh.worksheet(daily_sheet).get_all_records())
         df_periods = pd.DataFrame(sh.worksheet(periods_sheet).get_all_records())
         return df_daily, df_periods
 
-    df_daily, df_periods = load_data()
+    try:
+        df_daily, df_periods = load_data()
+        st.write("✅ Data loaded")
 
-    # -------------------------------
-    # Dashboard Layout
-    # -------------------------------
-    tab1, tab2 = st.tabs(["📅 Daily", "📆 Periods"])
+        # Dashboard Tabs
+        tab1, tab2 = st.tabs(["📅 Daily", "📆 Periods"])
 
-    with tab1:
-        st.header("🔹 Daily Metrics")
-        st.dataframe(df_daily)
+        with tab1:
+            st.header("🔹 Daily Metrics")
+            st.dataframe(df_daily)
 
-        if not df_daily.empty and "channel" in df_daily.columns and "net_premium" in df_daily.columns:
-            st.bar_chart(df_daily.groupby("channel")["net_premium"].sum())
+            if not df_daily.empty and "channel" in df_daily.columns and "net_premium" in df_daily.columns:
+                st.bar_chart(df_daily.groupby("channel")["net_premium"].sum())
 
-    with tab2:
-        st.header("🔹 Period Summary")
-        st.dataframe(df_periods)
+        with tab2:
+            st.header("🔹 Period Summary")
+            st.dataframe(df_periods)
 
-        if not df_periods.empty and "period" in df_periods.columns and "net_premium" in df_periods.columns:
-            st.bar_chart(df_periods.groupby("period")["net_premium"].sum())
+            if not df_periods.empty and "period" in df_periods.columns and "net_premium" in df_periods.columns:
+                st.bar_chart(df_periods.groupby("period")["net_premium"].sum())
+
+    except Exception as e:
+        st.error("❌ Error loading data")
+        st.exception(e)
