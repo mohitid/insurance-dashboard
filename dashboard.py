@@ -70,13 +70,16 @@ authenticator = stauth.Authenticate(
 )
 
 # Use login with proper location handling
+
 login_result = authenticator.login(location="main")
 
-if login_result is None:
-    st.warning("⚠️ Please enter your username and password")
-    st.stop()
+# Safe defaults
+name = None
+authentication_status = None
+username = None
 
-name, authentication_status, username = login_result
+if login_result:
+    name, authentication_status, username = login_result
 
 # -------------------------------
 # Auth logic
