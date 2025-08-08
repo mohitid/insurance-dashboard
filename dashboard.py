@@ -30,7 +30,9 @@ gc = gspread.authorize(credentials)
 # -------------------------------
 # Load authentication config
 # -------------------------------
-config = st.secrets["auth_config"]
+# config = st.secrets["auth_config"]
+config = dict(st.secrets["auth_config"])
+
 
 authenticator = stauth.Authenticate(
     config,
