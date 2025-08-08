@@ -1,59 +1,65 @@
 import streamlit as st
 import pandas as pd
-import yaml
 import gspread
-from google.oauth2.service_account import Credentials
 import streamlit_authenticator as stauth
+from google.oauth2.service_account import Credentials
 
-# --- Load login credentials from YAML ---
-with open('config.yaml') as file:
-    config = yaml.safe_load(file)
+# --- Load login credentials from Streamlit Secrets ---
+config = {
+    'usernames': {
+        'mohit': {
+            'name': st.secrets["auth_config"]["usernames.mohit.name"],
+            'password': st.secrets["auth_config"]["usernames.mohit.password"]
+        },
+        'adil': {
+            'name': st.secrets["auth_config"]["usernames.adil.name"],
+            'password': st.secrets["auth_config"]["usernames.adil.password"]
+        }
+    },
+    'cookie': {
+        'name': st.secrets["auth_config"]["cookie.name"],
+        'key': st.secrets["auth_config"]["cookie.key"],
+        'expiry_days': int(st.secrets["auth_config"]["cookie.expiry_days"])
+    },
+    'preauthorized': {
+        'emails': []
+    }
+}
 
-# --- Initialize authenticator ---
+# --- Authenticator setup ---
 authenticator = stauth.Authenticate(
     config,
     config['cookie']['name'],
     config['cookie']['key']
 )
 
-# --- Login UI ---
 name, authentication_status, username = authenticator.login("Login", "main")
 
-# --- Login Logic ---
 if authentication_status is False:
-    st.error("❌ Username or password is incorrect")
-
+    st.error("❌ Incorrect username or password")
 elif authentication_status is None:
-    st.warning("⚠️ Please enter your username and password")
-
+    st.warning("⚠️ Please enter your login credentials")
 elif authentication_status:
     authenticator.logout("Logout", "sidebar")
-    st.success(f"✅ Welcome {name}!")
+    st.success(f"Welcome {name} 👋")
 
-    # --- Page Setup ---
+    # --- Page setup ---
     st.set_page_config(page_title="📊 Insurance Dashboard", layout="wide")
     st.title("📈 Insurance Metrics Dashboard")
 
-    # --- Google Sheet Access via Service Account ---
+    # --- Google Sheet Access via Secrets ---
+    creds_dict = st.secrets["gcp_service_account"]
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive'
     ]
 
-    SERVICE_ACCOUNT_FILE = r'C:\Users\Mohit Khushlani\Downloads\endorsement-automation-6ace044178c9.json'
-
-    credentials = Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=scopes
-    )
-
+    credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     gc = gspread.authorize(credentials)
 
-    # --- Spreadsheet Info ---
     spreadsheet_key = "1MBI2PXlrVXIeeLFUyfNDCiuUG_-Lnm0PdMgxzg_kmcg"
     book = gc.open_by_key(spreadsheet_key)
 
-    # --- Load Sheets as DataFrames ---
     @st.cache_data
     def load_data():
         df_daily = pd.DataFrame(book.worksheet("Daily").get_all_records())
@@ -62,19 +68,17 @@ elif authentication_status:
 
     df_daily, df_periods = load_data()
 
-    # --- Dashboard Tabs ---
+    # --- Tabs ---
     tab1, tab2 = st.tabs(["📅 Daily", "📆 Periods"])
 
     with tab1:
         st.header("🔹 Daily Metrics")
         st.dataframe(df_daily)
-
         if not df_daily.empty and "channel" in df_daily.columns and "net_premium" in df_daily.columns:
             st.bar_chart(df_daily.groupby("channel")["net_premium"].sum())
 
     with tab2:
         st.header("🔹 Period Summary")
         st.dataframe(df_periods)
-
         if not df_periods.empty and "period" in df_periods.columns and "net_premium" in df_periods.columns:
             st.bar_chart(df_periods.groupby("period")["net_premium"].sum())
