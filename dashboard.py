@@ -3,6 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 import streamlit_authenticator as stauth
+import copy
 
 # -------------------------------
 # Set Streamlit page config
@@ -35,7 +36,9 @@ gc = gspread.authorize(credentials)
 # -------------------------------
 # Load authentication config
 # -------------------------------
-config = st.secrets["auth_config"]
+# config = st.secrets["auth_config"]
+config = copy.deepcopy(st.secrets["auth_config"])
+
 
 authenticator = stauth.Authenticate(
     config,
